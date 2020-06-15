@@ -1,0 +1,96 @@
+Extracting Information from Spotify API
+Analysis of Artist's music discography using the data extracted by using Spotify API.
+Credits: LouderToday we perform information extraction from Spotify API of bands specified in Louder- Best Rock Bands. To extract the data from Spotify initially, we need to create a developer account for Spotify here. After that create a web application that provides you with the client id and secret credentials. 
+We will be working with a python library called Spotipy.
+Install and Import the Spotipy modules for authentication:
+!pip install Spotipy
+import pandas as pd
+import numpy as np
+import sys
+import csv
+import spotipy
+import spotipy.util as util
+from spotipy.oauth2 import SpotifyClientCredentials
+import spotipy.oauth2 as oauth
+Enter the client id and secret and set up the spotipy object:
+SPOTIPY_CLIENT_ID = "**********************"
+SPOTIPY_CLIENT_SECRET = "**********************"
+redirect_uri='http://localhost:8080/callback/'
+client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
+sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
+Read the CSV file containing the bands and create a data frame for the bands:
+names_df =  pd.DataFrame({'artists' : ["Led Zeppelin","Queen","Rush","Pink Floyd","AC/DC","The Beatles","Black Sabbath","The Rolling Stones","Metallica","Iron Maiden",
+"Deep Purple","Guns N' Roses","Who","Def Leppard","Van Halen","Kiss","Aerosmith","Eagles","Yes","Jimi Hendrix","Bob Dylan","Thin Lizzy","David Bowie","Bon Jovi","U2",
+"Foo Fighters","Motorhead","Genesis","Judas Priest","Nirvana","Fleetwood Mac","Tool","Bruce Springsteen","Slade","Lynyrd Skynyrd","The Doors","Creedence Clearwater Revival",
+"Chicago","Uriah Heep","Status Quo","Marillion","Pearl Jam","Rainbow","Motley Crue","Cream","Journey","Ramones","ZZ Top","King Crimson","Roxy Music"]})
+Get 20 artist's popular songs by iterating through each artist tracklist items and enumerate their popular twenty track names, print them. Also, we can get artist's Cover art using a few tweaks in the below code. First, let's get the tracks.
+for artst in names_df.iterrows():
+     print(artst[1])
+     results = sp.search(q='artist:' + artst[1], limit=20)
+     for idx, track in enumerate(results['tracks']['items']):
+         print(idx, track['name'])
+The cover art can be obtained from the below code.
+for artst in names_df.iterrows():
+     results = sp.search(q='artist:' + artst[1], type='artist')
+     items = results['artists']['items']
+     if len(items) > 0:
+        artist = items[0]
+        print(artist['name'], artist['images'][0]['url'])
+Get the artist URI also creates a list that stores all artist's URI:
+all_artists_URI = []
+for artst in names_df.iterrows():
+       result = sp.search(q='artist:' + artst[1])
+       artist_uri = result['tracks']['items'][0]['artists'][0]['uri']
+       print(artist_uri)
+       all_artists_URI.append(artist_uri)
+Convert the list of URI's to a data frame and save them to the CSV file named as Artist_URI.
+from google.colab import files
+df = pd.DataFrame(l, columns=['Artist_URI'])
+df.to_csv('Artist_URI - Sheet1.csv', sep=',')
+files.download('Artist_URI - Sheet1.csv')
+We Completed the first step of scarping the Artist URI. Keep up!
+Using this we need to get 15 albums for each artist and store them for feature extraction on each song in these albums. Append all these albums to a list for all the artists given the URI as shown.
+all_artst_lst_albm = []
+for artst_uri in artists_uri_ls:
+       sp_albums = sp.artist_albums(artst_uri, album_type='album', limit=15)
+       all_artst_lst_albm.append(sp_albums)
+But we need only single artist album names and their respective URI so we create two separate lists.
+sgl_album_names = []
+sgl_album_uris = []
+for i in range(len(sp_albums['items'])):
+      sgl_album_names.append(sp_albums['items'][i]['name'])
+      sgl_album_uris.append(sp_albums['items'][i]['uri'])
+Extracting Meta Information of the songs in the albums:
+Create a dictionary and a counter variable. Then get the id, album name, track no, uri, duration in ms (milli sec), etc. by storing them in a list.
+albums = {}
+album_count = 0
+for i in sgl_album_uris:
+     SongsInalbum(i)
+     print("Album - " + str(sgl_album_names[album_count]))
+     album_count+=1
+The function which gets the meta-information of albums: 
+def SongsInalbum(uri):
+     album = uri
+     albums[album] = {}
+     albums[album]['album'] = []
+     albums[album]['id'] = []
+     albums[album]['name'] = []
+     albums[album]['duration_ms'] = []
+     albums[album]['track_number'] = []
+     albums[album]['uri'] = []
+     
+     tracks = sp.album_tracks(album)
+     
+     for n in range(len(tracks['items'])):
+        albums[album]['album'].append(sgl_album_names[album_count])
+        albums[album]['id'].append(tracks['items'][n]['id'])
+        albums[album]['name'].append(tracks['items'][n]['name'])
+        albums[album]['duration_ms'].append(tracks['items'][n]['duration_ms'])
+        albums[album]['track_number'].append(tracks['items'][n]['track_number'])
+        albums[album]['uri'].append(tracks['items'][n]['uri'])
+Convert the dictionary into a data frame and save them to a CSV file named Album_meta_data.
+from google.colab import files
+df = pd.DataFrame.from_dict(albums)
+df.to_csv('Album_meta_data.csv', sep=',')
+files.download('Album_meta_data.csv')
+Great! work. We finished the final step.

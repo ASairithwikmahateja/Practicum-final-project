@@ -11,6 +11,8 @@ Original file is located at
 
 import pandas as pd
 import numpy as np
+import csv
+import sys
 import spotipy
 import spotipy.util as util
 from spotipy.oauth2 import SpotifyClientCredentials
@@ -18,7 +20,7 @@ import spotipy.oauth2 as oauth2
 
 SPOTIPY_CLIENT_ID = "ba0aefea59a44616bc6703a7294d312d"
 SPOTIPY_CLIENT_SECRET = "989d552704124fe086005b3851f5a94b"
-redirect_uri='http://localhost:8080/callback/'
+redirect_uri='http://localhost:8888/callback/'
 
 client_credentials_manager = SpotifyClientCredentials(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET)
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
@@ -37,22 +39,37 @@ names_df =  pd.DataFrame({'artists' : ["Led Zeppelin","Queen","Rush","Pink Floyd
 names_df['artists'].astype(str)
 
 for artst in names_df.iterrows():
-  print(artst)
+  print(artst[1])
   results = sp.search(q='artist:' + artst[1], limit=20)
   for idx, track in enumerate(results['tracks']['items']):
     print(idx, track['name'])
 
+for artst in names_df.iterrows():
+  results = sp.search(q='artist:' + artst[1], type='artist')
+  items = results['artists']['items']
+  if len(items) > 0:
+    artist = items[0]
+    print(artist['name'], artist['images'][0]['url'])
+
+l = []
 for artst in names_df.iterrows():
   result = sp.search(q='artist:' + artst[1]) 
   fin_result = result['tracks']['items'][0]['artists']
   artist_uri = fin_result[0]['uri']
   print(fin_result)
   print(artist_uri)
+  l.append(artist_uri)
+print(l)
+
+from google.colab import files
+df = pd.DataFrame(l, columns=['Artist_URI'])
+df.to_csv('Artist_URI - Sheet1.csv', sep=',')
+files.download('Artist_URI - Sheet1.csv')
 
 from google.colab import files
 uploaded = files.upload()
 
-artist_uri = pd.read_csv("Artist_URI - Sheet1.csv")
+artist_uri = pd.read_csv("Artist_URI - Sheet1 (2).csv")
 artist_uri
 
 artists_uri_ls = ["36QJpDe2go2KgaRleHCDTp",
@@ -124,63 +141,73 @@ sgl_album_names
 
 sgl_album_uris
 
-def SongsInalbum(uri):
-    album = uri 
-    spotify_albums[album] = {} 
-    spotify_albums[album]['album'] = [] 
-    spotify_albums[album]['track_number'] = []
-    spotify_albums[album]['id'] = []
-    spotify_albums[album]['name'] = []
-    spotify_albums[album]['uri'] = []
-    spotify_albums[album]['duration_ms'] = []
-    tracks = sp.album_tracks(album) 
-    for n in range(len(tracks['items'])):
-            spotify_albums[album]['album'].append(sgl_album_names[album_count]) 
-            spotify_albums[album]['track_number'].append(tracks['items'][n]['track_number'])
-            spotify_albums[album]['id'].append(tracks['items'][n]['id'])
-            spotify_albums[album]['name'].append(tracks['items'][n]['name'])
-            spotify_albums[album]['uri'].append(tracks['items'][n]['uri'])
-            spotify_albums[album]['duration_ms'].append(tracks['items'][n]['duration_ms'])
-
-spotify_albums = {}
+albums = {}
 album_count = 0
 for i in sgl_album_uris: 
     SongsInalbum(i)
     print("Album - " + str(sgl_album_names[album_count]))
     album_count+=1
 
+def SongsInalbum(uri):
+    album = uri 
+    albums[album] = {} 
+    albums[album]['album'] = [] 
+    albums[album]['track_number'] = []
+    albums[album]['id'] = []
+    albums[album]['name'] = []
+    albums[album]['uri'] = []
+    albums[album]['duration_ms'] = []
+    albums[album]['preview_url'] = []
+
+    tracks = sp.album_tracks(album) 
+    
+    for n in range(len(tracks['items'])):
+            albums[album]['album'].append(sgl_album_names[album_count]) 
+            albums[album]['track_number'].append(tracks['items'][n]['track_number'])
+            albums[album]['id'].append(tracks['items'][n]['id'])
+            albums[album]['name'].append(tracks['items'][n]['name'])
+            albums[album]['uri'].append(tracks['items'][n]['uri'])
+            albums[album]['duration_ms'].append(tracks['items'][n]['duration_ms'])
+            albums[album]['preview_url'].append(tracks['items'][n]['preview_url'])
+print(tracks)
+
+from google.colab import files
+df = pd.DataFrame.from_dict(albums)
+df.to_csv('Album_meta_data.csv', sep=',')
+files.download('Album_meta_data.csv')
+
 def audio_features(album):
-    spotify_albums[album]['acousticness'] = []
-    spotify_albums[album]['danceability'] = []
-    spotify_albums[album]['energy'] = []
-    spotify_albums[album]['instrumentalness'] = []
-    spotify_albums[album]['liveness'] = []
-    spotify_albums[album]['loudness'] = []
-    spotify_albums[album]['speechiness'] = []
-    spotify_albums[album]['tempo'] = []
-    spotify_albums[album]['valence'] = []
-    spotify_albums[album]['popularity'] = []
+    albums[album]['acousticness'] = []
+    albums[album]['danceability'] = []
+    albums[album]['energy'] = []
+    albums[album]['instrumentalness'] = []
+    albums[album]['liveness'] = []
+    albums[album]['loudness'] = []
+    albums[album]['speechiness'] = []
+    albums[album]['tempo'] = []
+    albums[album]['valence'] = []
+    albums[album]['popularity'] = []
     
     track_count = 0
-    for track in spotify_albums[album]['uri']:
+    for track in albums[album]['uri']:
         
         features = sp.audio_features(track)
-        spotify_albums[album]['acousticness'].append(features[0]['acousticness'])
-        spotify_albums[album]['danceability'].append(features[0]['danceability'])
-        spotify_albums[album]['energy'].append(features[0]['energy'])
-        spotify_albums[album]['instrumentalness'].append(features[0]['instrumentalness'])
-        spotify_albums[album]['liveness'].append(features[0]['liveness'])
-        spotify_albums[album]['loudness'].append(features[0]['loudness'])
-        spotify_albums[album]['speechiness'].append(features[0]['speechiness'])
-        spotify_albums[album]['tempo'].append(features[0]['tempo'])
-        spotify_albums[album]['valence'].append(features[0]['valence'])
+        albums[album]['acousticness'].append(features[0]['acousticness'])
+        albums[album]['danceability'].append(features[0]['danceability'])
+        albums[album]['energy'].append(features[0]['energy'])
+        albums[album]['instrumentalness'].append(features[0]['instrumentalness'])
+        albums[album]['liveness'].append(features[0]['liveness'])
+        albums[album]['loudness'].append(features[0]['loudness'])
+        albums[album]['speechiness'].append(features[0]['speechiness'])
+        albums[album]['tempo'].append(features[0]['tempo'])
+        albums[album]['valence'].append(features[0]['valence'])
         
         pop = sp.track(track)
-        spotify_albums[album]['popularity'].append(pop['popularity'])
+        albums[album]['popularity'].append(pop['popularity'])
         track_count+=1
 
 import time
-for i in spotify_albums:
+for i in albums:
     time.sleep(.5)
     audio_features(i)
 
@@ -201,9 +228,9 @@ dic_df['speechiness'] = []
 dic_df['tempo'] = []
 dic_df['valence'] = []
 dic_df['popularity'] = []
-for album in spotify_albums: 
-    for feature in spotify_albums[album]:
-        dic_df[feature].extend(spotify_albums[album][feature])
+for album in albums: 
+    for feature in albums[album]:
+        dic_df[feature].extend(albums[album][feature])
       
 len(dic_df['album'])
 
