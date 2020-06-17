@@ -36,20 +36,35 @@ names_df =  pd.DataFrame({'artists' : ["Led Zeppelin","Queen","Rush","Pink Floyd
 "Foo Fighters","Motorhead","Genesis","Judas Priest","Nirvana","Fleetwood Mac","Tool","Bruce Springsteen","Slade","Lynyrd Skynyrd","The Doors","Creedence Clearwater Revival",
 "Chicago","Uriah Heep","Status Quo","Marillion","Pearl Jam","Rainbow","Motley Crue","Cream","Journey","Ramones","ZZ Top","King Crimson","Roxy Music"]})
 
-names_df['artists'].astype(str)
+nm_df = np.repeat(names_df['artists'], 20)
+nm_df
 
+track_lis = []
 for artst in names_df.iterrows():
   print(artst[1])
   results = sp.search(q='artist:' + artst[1], limit=20)
   for idx, track in enumerate(results['tracks']['items']):
     print(idx, track['name'])
+    track_lis.append(track['name'])
 
+from google.colab import files
+df = pd.DataFrame(list(zip(nm_df, track_lis)), columns=['Artists', 'Tracks'])
+df.to_csv('Tracks.csv', sep=',')
+files.download('Tracks.csv')
+
+coverimg_lis = []
 for artst in names_df.iterrows():
   results = sp.search(q='artist:' + artst[1], type='artist')
   items = results['artists']['items']
   if len(items) > 0:
     artist = items[0]
     print(artist['name'], artist['images'][0]['url'])
+    coverimg_lis.append(artist['images'][0]['url'])
+
+from google.colab import files
+df = pd.DataFrame(list(zip(names_df['artists'], coverimg_lis)), columns=['Artists', 'CoverArt'])
+df.to_csv('CoverArt.csv', sep=',')
+files.download('CoverArt.csv')
 
 l = []
 for artst in names_df.iterrows():
@@ -69,7 +84,7 @@ files.download('Artist_URI - Sheet1.csv')
 from google.colab import files
 uploaded = files.upload()
 
-artist_uri = pd.read_csv("Artist_URI - Sheet1 (2).csv")
+artist_uri = pd.read_csv("Artist_URI - Sheet1.csv")
 artist_uri
 
 artists_uri_ls = ["36QJpDe2go2KgaRleHCDTp",
@@ -129,8 +144,8 @@ for artst_uri in artists_uri_ls:
   print(sp_albums)
   all_artst_lst_albm.append(sp_albums)
 
-print(all_artst_lst_albm[4])
-sp_albums = all_artst_lst_albm[4]
+print(all_artst_lst_albm[0])
+sp_albums = all_artst_lst_albm[0]
 
 sgl_album_names = []
 sgl_album_uris = []
@@ -169,12 +184,11 @@ def SongsInalbum(uri):
             albums[album]['uri'].append(tracks['items'][n]['uri'])
             albums[album]['duration_ms'].append(tracks['items'][n]['duration_ms'])
             albums[album]['preview_url'].append(tracks['items'][n]['preview_url'])
-print(tracks)
 
 from google.colab import files
 df = pd.DataFrame.from_dict(albums)
-df.to_csv('Album_meta_data.csv', sep=',')
-files.download('Album_meta_data.csv')
+df.to_csv('Album_meta_data1.csv', sep=',')
+files.download('Album_meta_data1.csv')
 
 def audio_features(album):
     albums[album]['acousticness'] = []
@@ -228,6 +242,7 @@ dic_df['speechiness'] = []
 dic_df['tempo'] = []
 dic_df['valence'] = []
 dic_df['popularity'] = []
+dic_df['preview_url'] = []
 for album in albums: 
     for feature in albums[album]:
         dic_df[feature].extend(albums[album][feature])
